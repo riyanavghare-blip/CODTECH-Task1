@@ -1,0 +1,61 @@
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize, sent_tokenize
+from collections import defaultdict
+import heapq
+
+def summarize_article(text, num_sentences=3):
+    """
+    Summarizes a given text using an extractive approach.
+
+    Args:
+        text (str): The input article text to be summarized.
+        num_sentences (int): The desired number of sentences in the summary.
+
+    Returns:
+        str: The summarized text.
+    """
+    # Download necessary NLTK data (if not already downloaded)
+    try:
+        nltk.data.find('corpora/stopwords')
+    except nltk.downloader.DownloadError:
+        nltk.download('stopwords')
+    try:
+        nltk.data.find('tokenizers/punkt')
+    except nltk.downloader.DownloadError:
+        nltk.download('punkt')
+
+    stop_words = set(stopwords.words('english'))
+    words = word_tokenize(text.lower())
+
+    # Calculate word frequency
+    word_frequencies = defaultdict(int)
+    for word in words:
+        if word.isalnum() and word not in stop_words:
+            word_frequencies[word] += 1
+
+    # Calculate sentence scores based on word frequencies
+    sentence_scores = defaultdict(int)
+    sentences = sent_tokenize(text)
+    for i, sentence in enumerate(sentences):
+        for word in word_tokenize(sentence.lower()):
+            if word in word_frequencies:
+                sentence_scores[i] += word_frequencies[word]
+
+    # Select the top 'num_sentences' sentences
+    summary_sentences_indices = heapq.nlargest(num_sentences, sentence_scores, key=sentence_scores.get)
+    summary_sentences_indices.sort() # Maintain original sentence order
+
+    summary = [sentences[i] for i in summary_sentences_indices]
+    return " ".join(summary)
+
+# Example Usage:
+if __name__ == "__main__":
+    article_text = """
+    Natural language processing (NLP) is a subfield of computer science and artificial intelligence (AI) that uses machine learning to enable computers to understand and communicate with human language. NLP has made significant advancements in recent years, leading to applications like virtual assistants, machine translation, and sentiment analysis. One crucial aspect of NLP is text summarization, which aims to condense lengthy documents into shorter, coherent summaries. This can be achieved through extractive or abstractive methods. Extractive summarization selects important sentences from the original text, while abstractive summarization generates new sentences to convey the main ideas. This code demonstrates an extractive approach using NLTK to create a summary based on sentence scoring.
+    """
+    summary = summarize_article(article_text, num_sentences=2)
+    print("Original Article:")
+    print(article_text)
+    print("\nSummary:")
+    print(summary)
